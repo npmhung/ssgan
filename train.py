@@ -89,8 +89,8 @@ def rotate_batch(batch):
 def train():
     
     dt_train = get_dataloader(args.batch_size)
-    optimD = torch.optim.Adam(filter(lambda p: p.requires_grad, D.parameters()), lr=args.lr,  betas=(0, 0.9))
-    optimG = torch.optim.Adam(G.parameters(), lr=args.lr, betas=(0, 0.9))
+    optimD = torch.optim.Adam(filter(lambda p: p.requires_grad, D.parameters()), lr=args.lr,  betas=(0.5, 0.999))
+    optimG = torch.optim.Adam(G.parameters(), lr=args.lr, betas=(0.5, 0.999))
 
     if args.resume:
         resume(G=G, D=D, optimG=optimG, optimD=optimD, path=args.log)
@@ -112,17 +112,18 @@ def train():
             z = torch.FloatTensor(args.batch_size, args.z_dim).uniform_(-1, 1).cuda()
             with torch.no_grad():
                 fake = G(z).detach()
-            dlfake = D(fake)[0].mean()
+            dlfake = D(fake)[0]
 
             real = next(dt_train).cuda()
-            dlreal = D(real)[0].mean()
+            dlreal = D(real)[0]
 
             # calculate rotation loss
             rot_real = rotate_batch(real[:one_fourth])
             rot_score = D(rot_real)[1]
             drot_loss = loss(rot_score, label)
 
-            (dlfake-dlreal+args.beta*drot_loss).backward()
+            dloss=(F.relu(1+dlfake).mean()+F.relu(1-dlreal).mean()+args.beta*drot_loss)
+            dloss.backward()
             optimD.step()
         # =====================
         # TRAIN GENERATOR
@@ -137,18 +138,19 @@ def train():
         rot_fake = rotate_batch(fake[:one_fourth])
         rot_score = D(rot_fake)[1]
         grot_loss = loss(rot_score, label)
-        (-glfake + args.alpha*grot_loss).backward()
+        gloss = (-glfake + args.alpha*grot_loss)
+        gloss.backward()
         optimG.step()
 
         ep += 1
-        logger.add_scalar('D', float(dlfake-dlreal+args.beta*drot_loss), ep)
-        logger.add_scalar('G', float(-glfake+args.alpha*grot_loss), ep)
+        logger.add_scalar('D', float(dloss), ep)
+        logger.add_scalar('G', float(gloss), ep)
         if ep%1000==0 or ep==1:
             save(G=G, D=D, optimG=optimG, optimD=optimD, step=ep, path=args.log)
         if ep%500==0 or ep==1:
             print('Ep {}\n\tDloss {}\n\tGloss {}'.format(ep,
-                float(dlfake-dlreal+args.beta*drot_loss),
-                float(-glfake+args.alpha*grot_loss)))
+                float(dloss),
+                float(gloss)))
         if ep%100==0 or ep==1:
             x = vutils.make_grid(fake[:64].detach(), normalize=True, scale_each=True)
             logger.add_image('Gen', x, ep)
