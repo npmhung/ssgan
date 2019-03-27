@@ -115,7 +115,7 @@ class FirstResBlockDiscriminator(nn.Module):
 
 #GEN_SIZE=128
 #DISC_SIZE=128
-CH = 96
+CH = 64 
 
 class Generator(nn.Module):
     def __init__(self, z_dim):
