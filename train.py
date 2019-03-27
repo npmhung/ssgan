@@ -10,16 +10,20 @@ import torchvision.transforms.functional as TF
 from tensorboardX import SummaryWriter
 import torchvision.utils as vutils
 
-print(args)
 
 logger = SummaryWriter(args.log+'/tensorboard/')
 
-G = model.Generator(args.z_dim).cuda()
-D = model.Discriminator().cuda()
+if args.multi_gpu:
+    G = nn.DataParallel(model.Generator(args.z_dim)).cuda()
+    D = nn.DataParallel(model.Discriminator()).cuda()
+else:
+    G = model.Generator(args.z_dim).cuda()
+    D = model.Discriminator().cuda()
+
 
 print(G)
 print(D)
-
+print(args)
 
 def get_dataloader(batch_size):
     transform = transforms.Compose(
@@ -85,8 +89,8 @@ def rotate_batch(batch):
 def train():
     
     dt_train = get_dataloader(args.batch_size)
-    optimD = torch.optim.Adam(filter(lambda p: p.requires_grad, D.parameters()), lr=args.lr,  betas=(0, 0.999))
-    optimG = torch.optim.Adam(G.parameters(), lr=args.lr, betas=(0, 0.999))
+    optimD = torch.optim.Adam(filter(lambda p: p.requires_grad, D.parameters()), lr=args.lr,  betas=(0, 0.9))
+    optimG = torch.optim.Adam(G.parameters(), lr=args.lr, betas=(0, 0.9))
 
     if args.resume:
         resume(G=G, D=D, optimG=optimG, optimD=optimD, path=args.log)
@@ -105,7 +109,7 @@ def train():
             p.requires_grad_(True)
         for _ in range(args.disc_iter):
             optimD.zero_grad()
-            z = torch.randn(args.batch_size, args.z_dim).cuda()
+            z = torch.FloatTensor(args.batch_size, args.z_dim).uniform_(-1, 1).cuda()
             with torch.no_grad():
                 fake = G(z).detach()
             dlfake = D(fake)[0].mean()
@@ -146,7 +150,7 @@ def train():
                 float(dlfake-dlreal+args.beta*drot_loss),
                 float(-glfake+args.alpha*grot_loss)))
         if ep%100==0 or ep==1:
-            x = vutils.make_grid(fake.detach(), normalize=True, scale_each=True)
+            x = vutils.make_grid(fake[:64].detach(), normalize=True, scale_each=True)
             logger.add_image('Gen', x, ep)
             
 

@@ -1,15 +1,15 @@
 class cargs():
     def __init__(self):
-        self.batch_size = 128
-        self.log = './log/cifar10'
+        self.batch_size = 64
+        self.log = './log/cifar10_big'
         self.resume = False
-        self.multi_gpu = False
-        self.epoch = 20000
+        self.multi_gpu = False 
+        self.epoch = 200000
         self.z_dim = 128
         self.alpha = 1.0
         self.beta = 1.0
         self.lr = 0.0002
-        self.disc_iter = 5
+        self.disc_iter = 2
 
     def __str__(self):
         out = "=========ARGUMENTS==========\n"
