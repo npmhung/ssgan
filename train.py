@@ -42,6 +42,26 @@ def get_dataloader(batch_size):
             yield images
 
 
+def get_imagenet(batch_size):
+    transform = transforms.Compose([
+        transforms.Resize(64),
+        transforms.CenterCrop(64),
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), 
+                            (0.5, 0.5, 0.5))
+        ])
+    imagenet = torchvision.datasets.ImageFolder('./data/mini-imagenet/', transform=transform)
+    dt = torch.utils.data.DataLoader(imagenet, 
+            batch_size=batch_size,
+            shuffle=True,
+            num_workers=2,
+            drop_last=True,
+            pin_memory=True)
+
+    while True:
+        for images, _ in dt:
+            yield images
+
 def resume(**args):
     if args['resume_optim']:
         st = torch.load(args.path+'/G.pth')
@@ -88,7 +108,8 @@ def rotate_batch(batch):
 
 def train():
     
-    dt_train = get_dataloader(args.batch_size)
+    #dt_train = get_dataloader(args.batch_size)
+    dt_train = get_imagenet(args.batch_size)
     optimD = torch.optim.Adam(filter(lambda p: p.requires_grad, D.parameters()), lr=args.lr,  betas=(0.5, 0.999))
     optimG = torch.optim.Adam(G.parameters(), lr=args.lr, betas=(0.5, 0.999))
 

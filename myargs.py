@@ -1,7 +1,7 @@
 class cargs():
     def __init__(self):
         self.batch_size = 64
-        self.log = './log/cifar10_small'
+        self.log = './log/imagenet'
         self.resume = False
         self.multi_gpu = False 
         self.epoch = 200000

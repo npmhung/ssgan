@@ -128,6 +128,7 @@ class Generator(nn.Module):
         nn.init.xavier_uniform(self.final.weight.data, 1.)
 
         self.model = nn.Sequential(
+            ResBlockGenerator(8*CH, 8*CH, stride=2),
             ResBlockGenerator(8*CH, 4*CH, stride=2),
             ResBlockGenerator(4*CH, 2*CH, stride=2),
             ResBlockGenerator(2*CH, CH, stride=2),
@@ -147,7 +148,8 @@ class Discriminator(nn.Module):
                 FirstResBlockDiscriminator(channels, 1*CH, stride=2),
                 ResBlockDiscriminator(1*CH, 2*CH, stride=2),
                 ResBlockDiscriminator(2*CH, 4*CH, stride=2),
-                ResBlockDiscriminator(4*CH, 8*CH),
+                ResBlockDiscriminator(4*CH, 8*CH, stride=2),
+                ResBlockDiscriminator(8*CH, 8*CH, stride=2),
                 nn.ReLU(),
                 nn.AvgPool2d(4),
             )
